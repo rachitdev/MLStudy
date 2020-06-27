@@ -1,0 +1,10 @@
+TY  - BOOK
+AU  - Dal Pozzolo, Andrea
+AU  - Caelen, Olivier
+AU  - Bontempi, Gianluca
+PY  - 2015/09/09
+SP  - 
+N2  - A well-known rule of thumb in unbalanced classification recommends the rebalancing (typically by resampling) of the classes before proceeding with the learning of the classifier. Though this seems to work for the majority of cases, no detailed analysis exists about the impact of undersampling on the accuracy of the final classifier. This paper aims to fill this gap by proposing an integrated analysis of the two elements which have the largest impact on the effectiveness of an undersampling strategy: the increase of the variance due to the reduction of the number of samples and the warping of the posterior distribution due to the change of priori probabilities. In particular we will propose a theoretical analysis specifying under which conditions undersampling is recommended and expected to be effective. It emerges that the impact of undersam-pling depends on the number of samples, the variance of the classifier, the degree of imbalance and more specifically on the value of the posterior probability. This makes difficult to predict the average effectiveness of an undersampling strategy since its benefits depend on the distribution of the testing points. Results from several synthetic and real-world unbalanced datasets support and validate our findings.
+T1  - When is Undersampling Effective in Unbalanced Classification Tasks?
+DO  - 10.1007/978-3-319-23528-8_13
+ER  - 

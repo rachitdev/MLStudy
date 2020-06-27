@@ -1,0 +1,378 @@
+-- Hive Case Study by Madhu Vardharajana and Rachit Dev
+-- This case study is about analysing the data of New York Taxis by 2 vendors
+
+-- Adding the required .jar file
+ADD JAR /opt/cloudera/parcels/CDH/lib/hive/lib/hive-hcatalog-core-1.1.0-cdh5.11.2.jar;
+
+-- CREATE EXTERNAL TABLE 
+CREATE EXTERNAL TABLE if not exists nycTaxiData(
+VendorID int,
+tpep_pickup_datetime string,
+tpep_dropoff_datetime string,
+Passenger_count int,
+Trip_distance double,
+RateCodeID int,
+Store_and_fwd_flag string,
+PULocationID double,
+DOLocationID double,
+Payment_type int,
+Fare_amount double,
+Extra double,
+MTA_tax double,
+Improvement_surcharge double,
+Tip_amount double,
+Tolls_amount double,
+Total_amount double)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/common_folder/nyc_taxi_data/'
+tblproperties ("skip.header.line.count"="1");
+
+
+SELECT * FROM nycTaxiData;
+
+-- DROP TABLE IF EXISTS nycTaxiData;
+
+select vendorid, count(vendorid)
+from nycTaxiData
+group by vendorid
+order by vendorid;
+
+-- VendorId 1 has 527386 records
+-- VendorId 2 has 647183 records
+
+select vendorid, month(tpep_pickup_datetime) as pickup_month, 
+       year(tpep_pickup_datetime) as pickup_year,
+       month(tpep_dropoff_datetime) as dropoff_month,
+       year(tpep_dropoff_datetime) as dropoff_year
+from nycTaxiData
+where (month(tpep_pickup_datetime) not in (11,12)
+   or year(tpep_pickup_datetime) <> 2017
+   or month(tpep_dropoff_datetime) not in (11,12)
+   or year(tpep_dropoff_datetime) <> 2017);
+   
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where (month(tpep_pickup_datetime) not in (11,12)
+   or year(tpep_pickup_datetime) <> 2017
+   or month(tpep_dropoff_datetime) not in (11,12)
+   or year(tpep_dropoff_datetime) <> 2017)
+group by vendorid
+order by vendorid;
+
+-- False, the data provided has other months and years data as well
+-- There are data from the year 2017 but from the month of october
+-- There are details of the trip as old as 2008, 2009 and 
+-- as recent as 2019 ranging across months of January and december
+-- Vendor 1 has 29 rows which falls out of range of the Nov and dec 2017 timeframe
+-- Vendor 2 has 92 rows which falls out of range of the Nov and dec 2017 timeframe
+
+-- check for the passenger count having 0 or > 10
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where passenger_count = 0
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 6813
+-- vendor 2 11
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where passenger_count > 10
+group by vendorid
+order by vendorid;
+
+-- No rows with passenger count > 10
+
+-- check for the trip distance = 0
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where trip_distance = 0
+group by vendorid
+order by vendorid;
+
+-- vendor 1 4217 rows with 0 trip distance
+-- vendor 2 3185 rows with 0 trip distance
+
+-- check for the correct ratecodeid accepted codes are 1 to 6 
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where RateCodeId not in (1,2,3,4,5,6)
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 8 error rows
+-- Vendor 2 has 1 error row
+
+--check for Store_and_fwd_flag invalide values
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where Store_and_fwd_flag not in ('Y','N')
+group by vendorid
+order by vendorid;
+
+-- No rows with invalid value
+
+-- Check for invalid payment type
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where payment_type not in (1,2,3,4,5,6)
+group by vendorid
+order by vendorid;
+
+-- No rows with invalid payment type
+
+-- check for incorrect fare amount
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where Fare_amount <= 0
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 231 error rows
+-- Vendor 2 has 639 error rows
+
+-- check for invalid extra values
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where Extra not in (0, 0.5, 1)
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 1823 error rows
+-- Vendor 2 has 3033 error rows
+
+-- check for any invalid MTA_tax
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where MTA_tax not in (0, 0.5)
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 1 error row
+-- Vendor 2 has 547 error rows
+
+-- check for improvement_surcharge value other than 0.3
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where improvement_surcharge <> 0.3
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 61 error rows
+-- Vendor 2 has 788 error rows
+
+-- Check for invalid tip_amount
+
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where tip_amount < 0
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has no error records
+-- Vendor 2 has 4 error records
+
+-- check for invalid total_amount
+select vendorid, count(vendorid) as error_count
+from nycTaxiData
+where total_amount <= 0
+group by vendorid
+order by vendorid;
+
+-- Vendor 1 has 42 error records
+-- Vendor 2 has 639 error records
+
+-- From the above analysis Vendor 2 has been quite bad 
+-- in providing the relevant data considering all the column values
+
+--ORC Partitioned table creation
+SET hive.exec.max.dynamic.partitions=1000000;
+SET hive.exec.max.dynamic.partitions.pernode=1000000;
+
+--drop table nycTaxiData_partition_ORC;
+
+CREATE EXTERNAL TABLE if not exists nycTaxiData_partition_ORC(
+VendorID int,
+tpep_pickup_datetime string,
+tpep_dropoff_datetime string,
+Passenger_count int,
+Trip_distance double,
+RateCodeID int,
+Store_and_fwd_flag string,
+PULocationID double,
+DOLocationID double,
+Payment_type int,
+Fare_amount double,
+Extra double,
+MTA_tax double,
+Improvement_surcharge double,
+Tip_amount double,
+Tolls_amount double,
+Total_amount double)
+partitioned by (yr int, mnth int)
+STORED AS ORC 
+LOCATION '/user/hive/warehouse/nycTaxiData_partition_orc1'
+TBLPROPERTIES ("orc.compress"="SNAPPY");
+
+--Write data from partition table into ORC table ignoring the error records
+
+insert OVERWRITE table nycTaxiData_partition_orc partition(yr= 2017 , mnth = 11, mnth = 12)
+select * from nycTaxiData 
+where (month(tpep_pickup_datetime) in (11,12)
+   and year(tpep_pickup_datetime) = 2017
+   and month(tpep_dropoff_datetime) in (11,12)
+   and year(tpep_dropoff_datetime) = 2017)
+  and passenger_count <> 0
+  and trip_distance > 0
+and RateCodeId in (1,2,3,4,5,6)
+and Fare_amount > 0
+and Extra in (0, 0.5, 1)
+and MTA_tax in (0, 0.5)
+and improvement_surcharge = 0.3
+and tip_amount > 0
+and total_amount > 0; 
+
+-- Analysis 1
+-- Compare the overall average fare per trip for November and December.
+
+select month(tpep_pickup_datetime), avg(fare_amount)
+from nycTaxiData_partition_ORC
+where month(tpep_pickup_datetime) in (11,12)
+group by month(tpep_pickup_datetime);
+
+-- Average fare per trip for November is 13.29 and December is 13.04
+
+-- Explore the ‘number of passengers per trip’ 
+
+select passenger_count, count(passenger_count)  
+from nycTaxiData_partition_ORC
+group by passenger_count;
+
+-- passenger_count 1 - 537100 trips
+-- passenger_count 2 - 110176 trips
+-- passenger_count 3 - 30719 trips
+-- passenger_count 4 - 13653 trips
+-- passenger_count 5 - 34624 trips
+-- passenger_count 6 - 20987 trips
+-- passenger_count 7 - 2 trips
+
+-- most preferred mode of payment
+
+select payment_type, count(payment_type)  
+from nycTaxiData_partition_ORC
+group by payment_type;
+
+-- Payment type 1 - credit card - 747244
+-- payment type 3 - No charge - 12
+-- payment type 4 - Dispute - 5
+-- The most preferred payment type is Credit card
+
+--The average tip paid per trip
+
+select avg(float(tip_amount)) as avg_tip_amount,
+percentile_approx(float(tip_amount), 0.25) as 25th_percentile,
+percentile_approx(float(tip_amount), 0.50) as 50th_percentile,
+percentile_approx(float(tip_amount), 0.75) as 75th_percentile
+from nycTaxiData_partition_ORC;
+
+-- Average tip amount per trip is 	0.3531257485672879
+--25th , 50th and 75th percentile of the tip amount is 0 
+-- Here the average tip is not the representative of statistics as its not equal to the 50th percentile.
+
+-- Explore the ‘Extra’ (charge) variable 
+select count(Extra) as trips_with_extra 
+from nycTaxiData_partition_ORC
+where extra > 0;
+
+-- There are 351780 trips with extra charge
+
+select count(*) as total_trips 
+from nycTaxiData_partition_ORC;
+
+-- Total number of trips are 747261
+
+-- fraction of total trips that have an extra charge levied is calculated by 
+-- dividing trips with extra charge by total trips
+
+select  351780/747261;
+
+-- 0.470759212644578 is fraction of total trips that have an extra charge levied
+
+-- Analysis 2
+
+-- correlation between the number of passengers on any given trip, and the tip paid per trip
+
+select CORR(tip_amount, passenger_count)
+from nycTaxiData_partition_ORC;
+
+
+-- 0.00831 correlation 
+-- There is a no correlation between the number of passengers and the tip paid per trip
+-- Since no correlation cannot conclude on multiple travellers tip more than solo travellers
+
+select count(*) from nycTaxiData_partition_ORC;
+
+select a.tip_bucket, (count(a.tip_amount)/747261)*100 as percentage_share
+from (select tip_amount, case when tip_amount>=0 and tip_amount<5 then 'segment1'
+                        when tip_amount>=5 and tip_amount<10 then 'segment2'
+                        when tip_amount>=10 and tip_amount<15 then 'segment3'
+                        when tip_amount>=15 and tip_amount<20 then 'segment4'
+                        else 'segment5'
+                    end as tip_bucket from nycTaxiData_partition_ORC)a
+    group by a.tip_bucket;
+
+-- segment1 = 94.386
+-- segment2 = 5.29
+-- segment3 = 0.184
+-- segment4 = 0.113
+-- segment5 = 0.025
+    
+-- Month with greater average speed
+
+select month(tpep_pickup_datetime) as trip_month,
+avg(Trip_distance/(unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime))*60) as avg_speed
+from nycTaxiData_partition_ORC
+group by month(tpep_pickup_datetime);
+
+-- November has average speed of 0.1838248812397574
+-- December has average speed of 0.18589862812708255
+-- Hence from above December has greater average speed
+
+-- Average speed for 25th december
+
+SELECT avg(Trip_distance/(unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime))*60) as avg_speed
+from nycTaxiData_partition_ORC
+where month(tpep_pickup_datetime) = 12
+and DAY(tpep_pickup_datetime) = 25;
+
+-- 25th December average speed is 0.26667950714552485 miles/hour
+
+-- Average speed for 31st december
+
+SELECT avg(Trip_distance/(unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime))*60) as avg_speed
+from nycTaxiData_partition_ORC
+where month(tpep_pickup_datetime) = 12
+and DAY(tpep_pickup_datetime) = 31;
+
+-- 31st December average speed is 0.22675747465907883 miles/hour
+
+SELECT avg(Trip_distance/(unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime))*60) as avg_speed
+from nycTaxiData_partition_ORC
+where month(tpep_pickup_datetime) = 12
+and DAY(tpep_pickup_datetime) in (25,31);
+
+-- The average speed on 25th and 31st december is 	0.24094706787314188 miles/hour
+
+-- Overall average speed
+SELECT avg(Trip_distance/(unix_timestamp(tpep_dropoff_datetime) - unix_timestamp(tpep_pickup_datetime))*60) as avg_speed
+from nycTaxiData_partition_ORC;
+
+-- overall average speed for the months of november and december is 0.18485830421031352 miles/hour
+
+-- The average speed on 31st and 25th december is greater than that of the overall average speed.

@@ -1,0 +1,40 @@
+''' Read input from STDIN. Print your output to STDOUT '''
+    #Use input() to read input from STDIN and use print 
+    #to write your output to STDOUT
+
+def main():
+
+    # All the required inputs are done here.
+    N = input()
+    QI = input()
+    QIL = input()
+      
+    # Transforming the data for the required problem.
+    QI_list = QI.split(" ")
+    QIL_list = QIL.split(" ")
+    QI_list.pop(-1)
+    QIL_list.pop(-1)
+    
+    # Creating the empty list.
+    l = []
+    # Typecasting the value of N to use in iteration.
+    n = int(N)-1
+    
+    # Checking for the given constraint number 1. 
+    if 1 <= n <= 10000000:
+        # Iterating through the lists and appending the 
+        # required values in the list l.
+        for i in range(0, n):
+            x = int(QIL_list[i])
+            y = int(QI_list[i])
+            # Checking for contraint number 2.
+            # if 0 <= y <= max(long)
+            # Integers are unlimited in size and 
+            # have no maximum value in Python.
+            a = x//y
+            l.append(a)
+
+    print(min(l))
+
+main()
+

@@ -1,0 +1,95 @@
+create external table if not exists ratings(
+`resturant` string,
+`location` string,
+`cuisines` string,
+`average_cost` string,
+`minimum_cost` string,
+`rating` string,
+`votes` string,
+`reviews` string)
+row format delimited fields terminated by ','
+stored as textfile
+location '/common_folder/live_session_data'
+tblproperties ("skip.header.line.count" = "1");
+
+select * from ratings limit 10;
+
+
+-- Question-1
+select count(*) as no_of_records from ratings;
+--2774 as the number of records
+
+--Question-2: 
+select count(*) as no_of_records
+from ratings
+where location like'%Bangalore%';
+--211
+
+--Question-3:
+select count(*) as error_rows
+from ratings
+where float(rating)<0 or float(rating)>5;
+
+--Question-4:
+select rating, count(*) as error_rows
+from ratings
+where rating<0 or rating>5 
+group by rating;
+
+
+--Question-5:
+create table rating_clean like ratings;
+
+Insert overwrite table rating_clean select * from ratings where ratings.rating>=0 and ratings.rating<=5;
+
+select rating, count(*) from rating_clean
+group by rating;
+
+--Question-6:
+
+select a.new_cuisine, avg(a.rating) from(
+select rating, case when cuisines like'%North Indian%' then 'North'
+                    when cuisines like'%South Indian%' then 'South'
+                    else 'other' 
+                end as new_cuisine from rating_clean)a
+group by a.new_cuisine;
+
+select avg(rating) as avg_rating from rating_clean where Cuisines like '%North Indian%';
+--3.58
+
+--Question-7:
+select avg(int(substr(minimum_cost,2, length(minimum_cost)))) as avg_minimum_cost
+from rating_clean
+where rating>=4;
+
+--Question-8:
+select min(float(rating)) as min_rating,
+percentile_approx(float(rating), 0.25) as 25_rating,
+percentile_approx(float(rating), 0.5) as 50_rating,
+percentile_approx(float(rating), 0.75) as 75_rating,
+max(float(rating)) as max_rating
+from rating_clean;
+
+
+--Question-9:
+select corr(int(votes), int(reviews)) as correlation_vote_review
+from  rating_clean;
+
+--Question-10:
+select a.rating_bucket, avg(int(a.votes))
+from (select votes, case when rating>=0 and rating<2.5 then 'poor'
+                        when rating>=2.5 and rating<3.5 then 'average'
+                        else 'good'
+                    end as rating_bucket from rating_clean)a
+    group by a.rating_bucket;
+
+
+--Question-11:
+select a.city, avg(float(a.rating))
+from (select rating, case when location like'%Mumbai%' then 'Mumbai'
+                            when location like'%Bangalore%' then 'Bangalore'
+                            when location like'%Delhi%' then 'Delhi'
+                            when location like'%Kolkata%' then 'Kolkata'
+                            else 'other'
+                        end as city from rating_clean)a
+group by a.city;
